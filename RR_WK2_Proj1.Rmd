@@ -1,0 +1,159 @@
+---
+title: "Reproduicble Research_WK2_Proj1"
+author: "LH"
+date: "2022-12-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Loading and preprocessing the data**
+
+  1. Load the data (i.e. \color{red}{\verb|read.csv()|}read.csv())
+```{r LoadData}
+      library(plyr)
+      library(ggplot2)
+
+      act <- read.csv("activity.csv")
+      head(act)
+      str(act)
+```
+
+  2. Process/transform the data (if necessary) into a format suitable for your analysis
+  
+
+**What is mean total number of steps taken per day?**
+
+For this part of the assignment, you can ignore the missing values in the dataset.
+```{r ProcessData}
+      
+```
+
+  1. Calculate the total number of steps taken per day
+```{r Totalnumberperday} 
+      tnstpd <-aggregate(act$steps, by=list(act$date), FUN = sum, na.rm=TRUE) 
+      colnames(tnstpd) <- c("date", "tn_steps")
+      head(tnstpd)
+```
+
+  2. If you do not understand the difference between a histogram and a barplot, research the             
+    difference between them. Make a histogram of the total number of steps taken each day
+```{r histotnstpd} 
+      hist(tnstpd$tn_steps, breaks =8, main = 'Histogram of the total number of steps taken each day', xlab = 'Steps', col = 'blue')   
+
+```
+
+  3. Calculate and report the mean and median of the total number of steps taken per day
+    difference between them. Make a histogram of the total number of steps taken each day
+```{r mean&median}
+      meanstpd <- round(mean(tnstpd$tn_steps))
+      print(paste('Mean of the total number of steps taken per day =', meanstpd))
+
+      medistpd<- round(median(tnstpd$tn_steps))
+      print(paste('Median of the total number of steps taken per day =', medistpd))
+```
+
+
+**What is the average daily activity pattern?**
+
+  1. Make a time series plot (i.e. \color{red}{\verb|type = "l"|}type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r avgdailypattern}
+ 
+      clean_act <- na.omit(act)
+      meanstef<- -aggregate(clean_act$steps, by=list(clean_act$interval), FUN = mean, na.rm=TRUE)
+      colnames(meanstef) <- c("time", "avg_steps")
+      meanstef$time <-meanstef$time * (-1)
+      meanstef$avg_steps <-meanstef$avg_steps * (-1)
+      plot(meanstef$time, meanstef$avg_steps, type = "l")
+     
+``` 
+ 
+  2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+    difference between them. Make a histogram of the total number of steps taken each day
+```{r maxavg}
+      meanstef[which.max(meanstef$avg_steps),]
+```
+
+**Imputing missing values**
+
+Note that there are a number of days/intervals where there are missing values (coded as \color{red}{\verb|NA|}NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+  1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with \color{red}{\verb|NA|}NAs)
+```{r infona}
+      sum(is.na(act$steps))
+      colMeans(is.na.data.frame(act))
+```  
+  
+
+  2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+ 
+ ```{r creatend}
+        act_fill_NA <- act
+```   
+
+  3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+ 
+ ```{r fillna}
+      #We will use mean of steps from cleaning data to replace all NA in the original data
+      #There're 8 days of missing data
+      act_fill_NA$steps[is.na(act_fill_NA$steps)] <- round(mean(clean_act$steps))      
+      head(act_fill_NA)
+      str(act_fill_NA)
+```   
+
+  4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+ 
+ ```{r compNA}
+      tnstpd_NA <-aggregate(act_fill_NA$steps, by=list(act_fill_NA$date), FUN = sum, na.rm=TRUE) 
+      colnames(tnstpd_NA) <- c("date", "tn_steps")
+      
+      hist(tnstpd_NA$tn_steps, breaks =8, main = 'Histogram of the total number of steps taken each day after replacement', xlab = 'Steps', col = 'blue')       
+      #Calculate and report the mean and median of the total number of steps taken per day
+      meanstpd_NA <- round(mean(tnstpd_NA$tn_steps))
+      print(paste('Mean of the total number of steps taken per day after replacement =', meanstpd_NA))
+
+      medistpd_NA<- round(median(tnstpd_NA$tn_steps))
+      print(paste('Median of the total number of steps taken per day after replacement =', medistpd_NA))
+```   
+
+**Are there differences in activity patterns between weekdays and weekends?**
+
+For this part the \color{red}{\verb|weekdays()|}weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+  1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+ 
+ ```{r compDT}
+      act_fill_NA$DT <- ifelse(weekdays(as.Date(act_fill_NA$date)) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+      act_fill_NA$DT <- as.factor(act_fill_NA$DT)
+      str(act_fill_NA)
+```   
+
+  2. Make a panel plot containing a time series plot (i.e. \color{red}{\verb|type = "l"|}type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+  
+ ```{r plotDT}
+      interval_comp <- ddply(act_fill_NA, .(interval, DT), summarize, Avg = mean(steps))
+
+      ggplot(interval_comp, aes(x = interval, y = Avg)) + 
+        geom_line(aes(color = DT, linetype = DT)) + 
+        scale_color_manual(values = c("darkred", "steelblue")) +
+        labs(x="Interval", y="Avg Number of Steps") +
+        labs(title = "Average Steps per Interval Based on Type of Day")+
+        theme(plot.title = element_text(hjust = 0.5))
+```   
+  
+  
+  
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
